@@ -17,3 +17,10 @@ Aplicação para registrar empresas de ônibus e comparar orçamentos da viagem.
 4. Faça um novo deploy.
 
 Para executar localmente, crie `.env.local` com sua `DATABASE_URL`, instale as dependências com `npm install` e rode `npm run dev`.
+
+## Acesso inicial
+
+- Usuário: `admin`
+- Senha: `admin`
+
+Antes de tornar o sistema público, defina `ADMIN_USER`, `ADMIN_PASSWORD` e uma `SESSION_SECRET` longa nas variáveis de ambiente da Vercel.
