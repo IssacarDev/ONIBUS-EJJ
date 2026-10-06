@@ -1,0 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { requireAuth } from '@/lib/auth';
+export async function POST(_:NextRequest,{params}:{params:Promise<{id:string}>}){try{await requireAuth();const {id}=await params,sql=db();const rows=await sql`SELECT trip_id AS "tripId",availability FROM quotes WHERE id=${id}`;if(!rows.length||rows[0].availability!=='Disponível')throw new Error('A campeã precisa estar disponível.');await sql`UPDATE quotes SET status='Em negociação' WHERE trip_id=${rows[0].tripId} AND status='Selecionada'`;await sql`UPDATE quotes SET status='Selecionada',updated_at=NOW() WHERE id=${id}`;return NextResponse.json({ok:true})}catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Não foi possível definir campeã.'},{status:400})}}
