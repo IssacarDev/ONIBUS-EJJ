@@ -14,8 +14,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const status = String(body.status || 'Reservado a pagar');
     const chargeTo = String(body.chargeTo || '').trim();
     const amount = asNumber(body.amount);
+    const discount = asNumber(body.discount) ?? 0;
     const notes = String(body.notes || '').trim();
-    if (!name || !statuses.includes(status) || amount === null || amount < 0) throw new Error('Preencha nome, status e valor corretamente.');
+    if (!name || !statuses.includes(status) || amount === null || amount < 0 || discount < 0) throw new Error('Preencha nome, status, valor e desconto corretamente.');
     if (status !== 'Suplência') {
       const sql = db();
       const existing = await sql`SELECT list_id AS "listId" FROM passengers WHERE id=${id}`;
@@ -23,7 +24,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       const list = await sql`SELECT capacity, (SELECT COUNT(*)::int FROM passengers WHERE list_id=${existing[0].listId} AND status <> 'Suplência' AND id <> ${id}) AS people FROM passenger_lists WHERE id=${existing[0].listId}`;
       if (!list.length || list[0].people >= list[0].capacity) throw new Error('A lista já atingiu todas as vagas disponíveis. Mantenha esta pessoa como suplência ou libere uma vaga.');
     }
-    await db()`UPDATE passengers SET name=${name}, status=${status}, charge_to=${chargeTo}, amount=${amount}, notes=${notes}, updated_at=NOW() WHERE id=${id}`;
+    await db()`UPDATE passengers SET name=${name}, status=${status}, charge_to=${chargeTo}, amount=${amount}, discount=${discount}, notes=${notes}, updated_at=NOW() WHERE id=${id}`;
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível salvar a pessoa.' }, { status: 400 });
