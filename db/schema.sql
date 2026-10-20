@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS passenger_lists (
   capacity INTEGER NOT NULL DEFAULT 46 CHECK (capacity > 0),
   default_value NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (default_value >= 0),
   bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0),
+  cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

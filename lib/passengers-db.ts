@@ -9,6 +9,7 @@ export async function ensurePassengerTables() {
     capacity INTEGER NOT NULL DEFAULT 46 CHECK (capacity > 0),
     default_value NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (default_value >= 0),
     bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0),
+    cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
@@ -25,6 +26,7 @@ export async function ensurePassengerTables() {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
   await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0)`;
+  await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0)`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0)`;
   await sql`CREATE INDEX IF NOT EXISTS passengers_list_id_idx ON passengers(list_id)`;
 }

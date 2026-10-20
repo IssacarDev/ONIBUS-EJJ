@@ -5,7 +5,7 @@ import type { Passenger, PassengerList, PaymentStatus } from '@/lib/types';
 
 type View = 'dashboard' | 'people' | 'lists';
 const paymentStatuses: PaymentStatus[] = ['Pago', 'Pego pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
-const blankList = { name: '', capacity: '46', defaultValue: '125', busTotal: '5200' };
+const blankList = { name: '', capacity: '46', defaultValue: '125', busTotal: '5200', cashBalance: '0' };
 const blankPerson = { name: '', status: 'Reservado a pagar' as PaymentStatus, chargeTo: '', amount: '125', discount: '0', notes: '' };
 const storageKey = 'ejj.passageiros.lista-atual';
 
@@ -52,7 +52,7 @@ export default function Dashboard() {
   const seatedPeople = selectedPeople.filter(person => person.status !== 'Suplência');
   const paidPeople = selectedPeople.filter(person => paid(person.status));
   const awaitingPeople = selectedPeople.filter(person => person.status === 'Reservado a pagar');
-  const cash = selectedPeople.filter(person => person.status === 'Pago').reduce((sum, person) => sum + person.amount, 0);
+  const cash = selectedList?.cashBalance || 0;
   const heldOutside = selectedPeople.filter(person => person.status === 'Pago Davy' || person.status === 'Pego pelo pastor').reduce((sum, person) => sum + person.amount, 0);
   const collected = paidPeople.reduce((sum, person) => sum + person.amount, 0);
   const awaiting = awaitingPeople.reduce((sum, person) => sum + person.amount, 0);
@@ -60,7 +60,7 @@ export default function Dashboard() {
   const vacancies = Math.max(0, (selectedList?.capacity || 0) - seatedPeople.length);
 
   const chooseList = (id: string) => { window.localStorage.setItem(storageKey, id); setSelectedListId(id); };
-  const openList = (item?: PassengerList) => { setEditId(item?.id || null); setListForm(item ? { name: item.name, capacity: String(item.capacity), defaultValue: String(item.defaultValue), busTotal: String(item.busTotal) } : blankList); setModal('list'); };
+  const openList = (item?: PassengerList) => { setEditId(item?.id || null); setListForm(item ? { name: item.name, capacity: String(item.capacity), defaultValue: String(item.defaultValue), busTotal: String(item.busTotal), cashBalance: String(item.cashBalance || 0) } : blankList); setModal('list'); };
   const openPerson = (item?: Passenger) => {
     if (!item && !selectedList) { setError('Crie ou selecione uma lista antes de cadastrar uma pessoa.'); return; }
     setEditId(item?.id || null);
@@ -69,7 +69,7 @@ export default function Dashboard() {
   };
   const saveList = async (event: FormEvent) => {
     event.preventDefault();
-    const response = await fetch(editId ? `/api/lists/${editId}` : '/api/lists', { method: editId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...listForm, capacity: Number(listForm.capacity), defaultValue: Number(listForm.defaultValue), busTotal: Number(listForm.busTotal) }) });
+    const response = await fetch(editId ? `/api/lists/${editId}` : '/api/lists', { method: editId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...listForm, capacity: Number(listForm.capacity), defaultValue: Number(listForm.defaultValue), busTotal: Number(listForm.busTotal), cashBalance: Number(listForm.cashBalance) }) });
     const data = await response.json(); if (!response.ok) { setError(data.error); return; }
     if (!editId) window.localStorage.setItem(storageKey, data.id);
     setModal(null); tell(editId ? 'Lista atualizada.' : 'Lista criada com sucesso.'); load();
@@ -105,7 +105,7 @@ export default function Dashboard() {
       {error && <div className="notice error">{error}<button onClick={() => setError('')}>×</button></div>}{notice && <div className="notice">{notice}</div>}
       {loading ? <div className="empty"><div className="loader" />Carregando a lista…</div> : view === 'dashboard' ? <Overview list={selectedList} people={selectedPeople} seatedCount={seatedPeople.length} vacancies={vacancies} cash={cash} heldOutside={heldOutside} busRemaining={busRemaining} awaiting={awaiting} openPerson={openPerson} setView={setView} /> : view === 'people' ? <section className="board"><div className="toolbar"><label>Buscar <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nome, status ou cobrança" /></label><span>{seatedPeople.length} de {selectedList?.capacity || 0} vaga(s) · {selectedPeople.filter(person => person.status === 'Suplência').length} suplente(s)</span><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div><PeopleTable people={shownPeople} open={openPerson} remove={id => remove('passengers', id)} /></section> : <section className="board"><div className="toolbar"><span>{lists.length} lista(s)</span><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div><ListsTable lists={lists} people={people} current={selectedListId} choose={chooseList} open={openList} remove={id => remove('lists', id)} /></section>}
     </section>
-    {modal === 'list' && <Modal title={editId ? 'Editar lista' : 'Criar lista'} close={() => setModal(null)}><form onSubmit={saveList} className="form"><Input label="Nome da lista" required wide value={listForm.name} placeholder="Ex.: Ônibus EJJ Baixo Guandu" onChange={name => setListForm({ ...listForm, name })} /><Input label="Quantidade de vagas" required type="number" value={listForm.capacity} onChange={capacity => setListForm({ ...listForm, capacity })} /><Input label="Valor geral por pessoa" required type="number" value={listForm.defaultValue} onChange={defaultValue => setListForm({ ...listForm, defaultValue })} /><Input label="Custo total do ônibus" required type="number" value={listForm.busTotal} onChange={busTotal => setListForm({ ...listForm, busTotal })} /><p className="form-note wide">Valor padrão: <b>R$ 125,00</b>. Você poderá alterar o valor de qualquer pessoa depois.</p><FormFooter close={() => setModal(null)} text="Salvar lista" /></form></Modal>}
+    {modal === 'list' && <Modal title={editId ? 'Editar lista' : 'Criar lista'} close={() => setModal(null)}><form onSubmit={saveList} className="form"><Input label="Nome da lista" required wide value={listForm.name} placeholder="Ex.: Ônibus EJJ Baixo Guandu" onChange={name => setListForm({ ...listForm, name })} /><Input label="Quantidade de vagas" required type="number" value={listForm.capacity} onChange={capacity => setListForm({ ...listForm, capacity })} /><Input label="Valor geral por pessoa" required type="number" value={listForm.defaultValue} onChange={defaultValue => setListForm({ ...listForm, defaultValue })} /><Input label="Custo total do ônibus" required type="number" value={listForm.busTotal} onChange={busTotal => setListForm({ ...listForm, busTotal })} /><Input label="Caixa real atual" required type="number" value={listForm.cashBalance} onChange={cashBalance => setListForm({ ...listForm, cashBalance })} /><p className="form-note wide">Use “Caixa real atual” como o saldo físico conferido, incluindo recebimentos como os pagos pelo Davy.</p><FormFooter close={() => setModal(null)} text="Salvar lista" /></form></Modal>}
     {modal === 'person' && <Modal title={editId ? 'Editar pessoa' : 'Adicionar pessoa'} close={() => setModal(null)}><form onSubmit={savePerson} className="form"><Input label="Nome da pessoa" required wide value={personForm.name} placeholder="Nome completo" onChange={name => setPersonForm({ ...personForm, name })} /><Select label="Status" required value={personForm.status} onChange={status => setPersonForm({ ...personForm, status: status as PaymentStatus })} options={paymentStatuses} /><Input label="Valor a pagar" required type="number" value={personForm.amount} onChange={amount => setPersonForm({ ...personForm, amount })} /><Input label="Desconto" type="number" value={personForm.discount} onChange={discount => setPersonForm({ ...personForm, discount })} /><Input label="Quem cobrar" wide value={personForm.chargeTo} placeholder="Ex.: nome do responsável" onChange={chargeTo => setPersonForm({ ...personForm, chargeTo })} /><label className="field wide">Observações<textarea value={personForm.notes} onChange={event => setPersonForm({ ...personForm, notes: event.target.value })} placeholder="Opcional" /></label><FormFooter close={() => setModal(null)} text="Salvar pessoa" /></form></Modal>}
   </main>;
 }
