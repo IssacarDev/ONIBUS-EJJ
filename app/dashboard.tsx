@@ -58,7 +58,8 @@ export default function Dashboard() {
   const collected = paidPeople.reduce((sum, person) => sum + person.amount, 0);
   const cash = collected;
   const awaiting = awaitingPeople.reduce((sum, person) => sum + person.amount, 0);
-  const busRemaining = Math.max(0, (selectedList?.busTotal || 0) - collected);
+  // Para quitar o ônibus, entram tanto o dinheiro em caixa quanto os valores já pagos pelo Paulo.
+  const busRemaining = Math.max(0, (selectedList?.busTotal || 0) - collected - heldOutside);
   const vacancies = Math.max(0, (selectedList?.capacity || 0) - seatedPeople.length);
 
   const chooseList = (id: string) => { window.localStorage.setItem(storageKey, id); setSelectedListId(id); };
