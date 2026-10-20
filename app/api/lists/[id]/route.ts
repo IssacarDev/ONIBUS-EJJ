@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { asNumber, db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
+import { ensurePassengerTables } from '@/lib/passengers-db';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth();
+    await requireAuth(); await ensurePassengerTables();
     const { id } = await params;
     const body = await request.json();
     const name = String(body.name || '').trim();
@@ -22,7 +23,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAuth();
+    await requireAuth(); await ensurePassengerTables();
     const { id } = await params;
     await db()`DELETE FROM passenger_lists WHERE id=${id}`;
     return NextResponse.json({ ok: true });

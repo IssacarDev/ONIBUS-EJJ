@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { asNumber, db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
+import { ensurePassengerTables } from '@/lib/passengers-db';
 
 export const dynamic = 'force-dynamic';
 const statuses = ['Pago', 'Pego pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
@@ -18,7 +19,7 @@ function parse(body: Record<string, unknown>) {
 
 export async function GET() {
   try {
-    await requireAuth();
+    await requireAuth(); await ensurePassengerTables();
     const rows = await db()`SELECT id, list_id AS "listId", name, status, charge_to AS "chargeTo", amount::float AS amount, notes, created_at AS "createdAt" FROM passengers ORDER BY created_at ASC`;
     return NextResponse.json(rows);
   } catch (error) {
@@ -28,7 +29,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth();
+    await requireAuth(); await ensurePassengerTables();
     const x = parse(await request.json());
     const sql = db();
     const list = await sql`SELECT capacity, (SELECT COUNT(*)::int FROM passengers WHERE list_id=${x.listId} AND status <> 'Suplência') AS people FROM passenger_lists WHERE id=${x.listId}`;

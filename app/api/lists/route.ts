@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { asNumber, db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
+import { ensurePassengerTables } from '@/lib/passengers-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ async function seed() {
 
 export async function GET() {
   try {
-    await requireAuth();
+    await requireAuth(); await ensurePassengerTables();
     await seed();
     const rows = await db()`SELECT id, name, capacity, default_value::float AS "defaultValue", created_at AS "createdAt" FROM passenger_lists ORDER BY created_at DESC`;
     return NextResponse.json(rows);
@@ -25,7 +26,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAuth();
+    await requireAuth(); await ensurePassengerTables();
     const body = await request.json();
     const name = String(body.name || '').trim();
     const capacity = asNumber(body.capacity);
