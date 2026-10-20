@@ -17,9 +17,10 @@ export async function ensurePassengerTables() {
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     list_id UUID NOT NULL REFERENCES passenger_lists(id) ON DELETE RESTRICT,
     name TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'Reservado a pagar' CHECK (status IN ('Pago', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência')),
+    status TEXT NOT NULL DEFAULT 'Reservado a pagar' CHECK (status IN ('Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência')),
     charge_to TEXT NOT NULL DEFAULT '',
     amount NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (amount >= 0),
+    received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0),
     discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0),
     notes TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -28,8 +29,10 @@ export async function ensurePassengerTables() {
   await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0)`;
   await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0)`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0)`;
+  await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0)`;
   await sql`ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check`;
   await sql`UPDATE passengers SET status='Pago pelo pastor' WHERE status='Pego pelo pastor'`;
-  await sql`ALTER TABLE passengers ADD CONSTRAINT passengers_status_check CHECK (status IN ('Pago', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'))`;
+  await sql`UPDATE passengers SET received_amount=amount WHERE received_amount=0 AND status IN ('Pago', 'Pago pelo pastor', 'Pago Davy')`;
+  await sql`ALTER TABLE passengers ADD CONSTRAINT passengers_status_check CHECK (status IN ('Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'))`;
   await sql`CREATE INDEX IF NOT EXISTS passengers_list_id_idx ON passengers(list_id)`;
 }
