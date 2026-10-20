@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS passengers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   list_id UUID NOT NULL REFERENCES passenger_lists(id) ON DELETE RESTRICT,
   name TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'Reservado a pagar' CHECK (status IN ('Pago', 'Pego pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência')),
+  status TEXT NOT NULL DEFAULT 'Reservado a pagar' CHECK (status IN ('Pago', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência')),
   charge_to TEXT NOT NULL DEFAULT '',
   amount NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (amount >= 0),
   discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0),
@@ -73,4 +73,5 @@ CREATE INDEX IF NOT EXISTS passengers_list_id_idx ON passengers(list_id);
 
 -- Para bancos que já foram criados antes da opção de suplência.
 ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check;
-ALTER TABLE passengers ADD CONSTRAINT passengers_status_check CHECK (status IN ('Pago', 'Pego pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'));
+UPDATE passengers SET status = 'Pago pelo pastor' WHERE status = 'Pego pelo pastor';
+ALTER TABLE passengers ADD CONSTRAINT passengers_status_check CHECK (status IN ('Pago', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'));

@@ -4,14 +4,14 @@ import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
 import type { Passenger, PassengerList, PaymentStatus } from '@/lib/types';
 
 type View = 'dashboard' | 'people' | 'lists';
-const paymentStatuses: PaymentStatus[] = ['Pago', 'Pego pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
+const paymentStatuses: PaymentStatus[] = ['Pago', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
 const blankList = { name: '', capacity: '46', defaultValue: '125', busTotal: '5200', cashBalance: '0' };
 const blankPerson = { name: '', status: 'Reservado a pagar' as PaymentStatus, chargeTo: '', amount: '125', discount: '0', notes: '' };
 const storageKey = 'ejj.passageiros.lista-atual';
 
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-const paid = (status: PaymentStatus) => ['Pago', 'Pego pelo pastor', 'Pago Davy'].includes(status);
-const tag = (status: PaymentStatus) => <span className={'tag ' + (status === 'Pago' || status === 'Pego pelo pastor' ? 'green' : status === 'Reservado a pagar' ? 'amber' : 'blue')}>{status}</span>;
+const paid = (status: PaymentStatus) => ['Pago', 'Pago pelo pastor', 'Pago Davy'].includes(status);
+const tag = (status: PaymentStatus) => <span className={'tag ' + (status === 'Pago' || status === 'Pago pelo pastor' ? 'green' : status === 'Reservado a pagar' ? 'amber' : 'blue')}>{status}</span>;
 const csvCell = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`;
 function downloadCsv(name: string, headers: string[], rows: unknown[][]) { const content = [headers.map(csvCell).join(';'), ...rows.map(row => row.map(csvCell).join(';'))].join('\n'); const url = URL.createObjectURL(new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url); }
 
@@ -53,7 +53,7 @@ export default function Dashboard() {
   const paidPeople = selectedPeople.filter(person => paid(person.status));
   const awaitingPeople = selectedPeople.filter(person => person.status === 'Reservado a pagar');
   const cash = selectedList?.cashBalance || 0;
-  const heldOutside = selectedPeople.filter(person => person.status === 'Pago Davy' || person.status === 'Pego pelo pastor').reduce((sum, person) => sum + person.amount, 0);
+  const heldOutside = selectedPeople.filter(person => person.status === 'Pago Davy' || person.status === 'Pago pelo pastor').reduce((sum, person) => sum + person.amount, 0);
   const collected = paidPeople.reduce((sum, person) => sum + person.amount, 0);
   const awaiting = awaitingPeople.reduce((sum, person) => sum + person.amount, 0);
   const busRemaining = Math.max(0, (selectedList?.busTotal || 0) - collected);

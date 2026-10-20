@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth';
 import { ensurePassengerTables } from '@/lib/passengers-db';
 
 export const dynamic = 'force-dynamic';
-const statuses = ['Pago', 'Pego pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
+const statuses = ['Pago', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
 
 function parse(body: Record<string, unknown>) {
   const listId = String(body.listId || '');
