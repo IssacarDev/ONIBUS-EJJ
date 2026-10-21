@@ -9,5 +9,5 @@ export type Quote = { id: string; tripId: string; companyId: string; contactName
 
 export type PaymentStatus = 'Pago' | 'Pago parcial' | 'Pago pelo pastor' | 'Pago Davy' | 'Reservado a pagar' | 'Suplência';
 export type PassengerList = { id: string; name: string; capacity: number; defaultValue: number; busTotal: number; cashBalance: number; createdAt: string };
-export type Passenger = { id: string; listId: string; name: string; status: PaymentStatus; chargeTo: string; amount: number; receivedAmount: number; discount: number; notes: string; createdAt: string };
+export type Passenger = { id: string; listId: string; name: string; status: PaymentStatus; usesSeat: boolean; chargeTo: string; amount: number; receivedAmount: number; discount: number; notes: string; createdAt: string };
 export type CashOutflow = { id: string; listId: string; recipient: string; amount: number; reason: string; createdAt: string };
