@@ -72,6 +72,18 @@ CREATE TABLE IF NOT EXISTS passengers (
 
 CREATE INDEX IF NOT EXISTS passengers_list_id_idx ON passengers(list_id);
 
+CREATE TABLE IF NOT EXISTS cash_outflows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  list_id UUID NOT NULL REFERENCES passenger_lists(id) ON DELETE RESTRICT,
+  recipient TEXT NOT NULL,
+  amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+  reason TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS cash_outflows_list_id_idx ON cash_outflows(list_id);
+
 -- Para bancos que já foram criados antes da opção de suplência.
 ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check;
 UPDATE passengers SET status = 'Pago pelo pastor' WHERE status = 'Pego pelo pastor';
