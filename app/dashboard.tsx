@@ -1,15 +1,16 @@
 'use client';
 
 import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react';
-import type { CashOutflow, Passenger, PassengerList, PaymentStatus } from '@/lib/types';
+import type { BoardingResponse, CashOutflow, Passenger, PassengerList, PaymentStatus } from '@/lib/types';
 
-type View = 'dashboard' | 'people' | 'cash' | 'lists';
+type View = 'dashboard' | 'people' | 'boarding' | 'cash' | 'lists';
 type PersonFilter = 'Todos' | 'Pendentes' | PaymentStatus;
 const paymentStatuses: PaymentStatus[] = ['Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'];
 const personFilters: PersonFilter[] = ['Todos', 'Pendentes', ...paymentStatuses];
-const blankList = { name: '', capacity: '46', defaultValue: '125', busTotal: '5200', cashBalance: '0' };
+const blankList = { name: '', capacity: '46', defaultValue: '125', busTotal: '5200', cashBalance: '0', boardingPoints: '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra' };
 const blankPerson = { name: '', status: 'Reservado a pagar' as PaymentStatus, usesSeat: true, chargeTo: '', amount: '125', receivedAmount: '0', discount: '0', notes: '' };
 const blankOutflow = { recipient: '', amount: '', reason: '' };
+const blankBoardingResponse = { fullName: '', boardingPoint: '', passengerId: '' };
 const storageKey = 'ejj.passageiros.lista-atual';
 
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -27,12 +28,14 @@ export default function Dashboard() {
   const [lists, setLists] = useState<PassengerList[]>([]);
   const [people, setPeople] = useState<Passenger[]>([]);
   const [outflows, setOutflows] = useState<CashOutflow[]>([]);
+  const [boardingResponses, setBoardingResponses] = useState<BoardingResponse[]>([]);
   const [selectedListId, setSelectedListId] = useState('');
-  const [modal, setModal] = useState<'list' | 'person' | 'outflow' | null>(null);
+  const [modal, setModal] = useState<'list' | 'person' | 'outflow' | 'boarding' | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [listForm, setListForm] = useState(blankList);
   const [personForm, setPersonForm] = useState(blankPerson);
   const [outflowForm, setOutflowForm] = useState(blankOutflow);
+  const [boardingForm, setBoardingForm] = useState(blankBoardingResponse);
   const [query, setQuery] = useState('');
   const [personFilter, setPersonFilter] = useState<PersonFilter>('Todos');
   const [notice, setNotice] = useState('');
@@ -47,13 +50,15 @@ export default function Dashboard() {
       const listsResponse = await fetch('/api/lists');
       const peopleResponse = await fetch('/api/passengers');
       const outflowsResponse = await fetch('/api/outflows');
-      if (!listsResponse.ok || !peopleResponse.ok || !outflowsResponse.ok) throw new Error('Não foi possível carregar os dados da lista.');
+      const boardingResponsesResponse = await fetch('/api/boarding-responses');
+      if (!listsResponse.ok || !peopleResponse.ok || !outflowsResponse.ok || !boardingResponsesResponse.ok) throw new Error('Não foi possível carregar os dados da lista.');
       const listsData = await listsResponse.json() as PassengerList[];
       const peopleData = await peopleResponse.json() as Passenger[];
       const outflowsData = await outflowsResponse.json() as CashOutflow[];
+      const boardingResponsesData = await boardingResponsesResponse.json() as BoardingResponse[];
       const saved = window.localStorage.getItem(storageKey);
       const current = saved && listsData.some(list => list.id === saved) ? saved : listsData[0]?.id || '';
-      setLists(listsData); setPeople(peopleData); setOutflows(outflowsData); setSelectedListId(current);
+      setLists(listsData); setPeople(peopleData); setOutflows(outflowsData); setBoardingResponses(boardingResponsesData); setSelectedListId(current);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Erro ao carregar os dados.'); }
     finally { setLoading(false); }
   };
@@ -63,6 +68,7 @@ export default function Dashboard() {
   const selectedList = lists.find(list => list.id === selectedListId);
   const selectedPeople = useMemo(() => people.filter(person => person.listId === selectedListId), [people, selectedListId]);
   const selectedOutflows = useMemo(() => outflows.filter(outflow => outflow.listId === selectedListId), [outflows, selectedListId]);
+  const selectedBoardingResponses = useMemo(() => boardingResponses.filter(response => response.listId === selectedListId), [boardingResponses, selectedListId]);
   const shownPeople = useMemo(() => selectedPeople.filter(person => Object.values(person).join(' ').toLowerCase().includes(query.toLowerCase()) && (personFilter === 'Todos' || (personFilter === 'Pendentes' ? isOutstanding(person) : person.status === personFilter))), [selectedPeople, query, personFilter]);
   const seatedPeople = selectedPeople.filter(person => person.usesSeat && person.status !== 'Suplência');
   const paidPeople = selectedPeople.filter(person => countsAsCash(person.status) || person.status === 'Pago parcial');
@@ -77,7 +83,7 @@ export default function Dashboard() {
   const vacancies = Math.max(0, (selectedList?.capacity || 0) - seatedPeople.length);
 
   const chooseList = (id: string) => { window.localStorage.setItem(storageKey, id); setSelectedListId(id); };
-  const openList = (item?: PassengerList) => { setEditId(item?.id || null); setListForm(item ? { name: item.name, capacity: String(item.capacity), defaultValue: String(item.defaultValue), busTotal: String(item.busTotal), cashBalance: String(item.cashBalance || 0) } : blankList); setModal('list'); };
+  const openList = (item?: PassengerList) => { setEditId(item?.id || null); setListForm(item ? { name: item.name, capacity: String(item.capacity), defaultValue: String(item.defaultValue), busTotal: String(item.busTotal), cashBalance: String(item.cashBalance || 0), boardingPoints: item.boardingPoints || blankList.boardingPoints } : blankList); setModal('list'); };
   const openPerson = (item?: Passenger) => {
     if (!item && !selectedList) { setError('Crie ou selecione uma lista antes de cadastrar uma pessoa.'); return; }
     setEditId(item?.id || null);
@@ -89,6 +95,12 @@ export default function Dashboard() {
     setEditId(item?.id || null);
     setOutflowForm(item ? { recipient: item.recipient, amount: String(item.amount), reason: item.reason } : blankOutflow);
     setModal('outflow');
+  };
+  const openBoardingResponse = (item?: BoardingResponse) => {
+    if (!item && !selectedList) { setError('Crie ou selecione uma lista antes de registrar uma resposta.'); return; }
+    setEditId(item?.id || null);
+    setBoardingForm(item ? { fullName: item.fullName, boardingPoint: item.boardingPoint, passengerId: item.passengerId || '' } : blankBoardingResponse);
+    setModal('boarding');
   };
   const saveList = async (event: FormEvent) => {
     event.preventDefault();
@@ -109,7 +121,13 @@ export default function Dashboard() {
     const data = await response.json(); if (!response.ok) { setError(data.error); return; }
     setModal(null); tell(editId ? 'Saída atualizada.' : 'Saída de caixa registrada.'); load();
   };
-  const remove = async (kind: 'lists' | 'passengers' | 'outflows', id: string) => {
+  const saveBoardingResponse = async (event: FormEvent) => {
+    event.preventDefault();
+    const response = await fetch(editId ? `/api/boarding-responses/${editId}` : '/api/boarding-responses', { method: editId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...boardingForm, listId: selectedListId, passengerId: boardingForm.passengerId || null }) });
+    const data = await response.json(); if (!response.ok) { setError(data.error); return; }
+    setModal(null); tell(editId ? 'Resposta atualizada.' : 'Resposta registrada.'); load();
+  };
+  const remove = async (kind: 'lists' | 'passengers' | 'outflows' | 'boarding-responses', id: string) => {
     if (!confirm('Excluir este registro?')) return;
     const response = await fetch(`/api/${kind}/${id}`, { method: 'DELETE' }); const data = await response.json();
     if (!response.ok) { setError(data.error); return; }
@@ -119,27 +137,38 @@ export default function Dashboard() {
   const exportCurrent = () => {
     if (view === 'lists') { downloadCsv('listas-de-passageiros.csv', ['Lista', 'Vagas', 'Valor padrão'], lists.map(list => [list.name, list.capacity, list.defaultValue])); tell('Listas exportadas.'); return; }
     if (view === 'cash') { downloadCsv(`saidas-de-caixa-${selectedList?.name || 'lista'}.csv`, ['Data', 'Para quem', 'Valor', 'Motivo'], selectedOutflows.map(outflow => [outflow.createdAt, outflow.recipient, outflow.amount, outflow.reason])); tell('Saídas de caixa exportadas.'); return; }
+    if (view === 'boarding') { downloadCsv(`respostas-de-embarque-${selectedList?.name || 'lista'}.csv`, ['Nome informado', 'Local de embarque', 'Vinculado à lista', 'Data'], selectedBoardingResponses.map(response => [response.fullName, response.boardingPoint, response.passengerName || 'Não consta na lista', response.createdAt])); tell('Respostas de embarque exportadas.'); return; }
     downloadCsv(`passageiros-${selectedList?.name || 'lista'}.csv`, ['Nome', 'Status', 'Quem cobrar', 'Valor combinado', 'Já recebido', 'Falta cobrar', 'Desconto', 'Observações'], selectedPeople.map(person => [person.name, person.status, person.chargeTo, person.amount, person.receivedAmount, outstandingAmount(person), person.discount, person.notes])); tell('Lista de pessoas exportada.');
   };
   const login = async (username: string, password: string) => { const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }); const data = await response.json(); if (!response.ok) throw new Error(data.error); setAuthenticated(true); load(); };
-  const logout = async () => { await fetch('/api/auth/logout', { method: 'POST' }); setAuthenticated(false); setPeople([]); setOutflows([]); setLists([]); };
+  const logout = async () => { await fetch('/api/auth/logout', { method: 'POST' }); setAuthenticated(false); setPeople([]); setOutflows([]); setBoardingResponses([]); setLists([]); };
 
   if (authenticated === null) return <main className="login-page"><div className="loader" />Preparando acesso…</main>;
   if (!authenticated) return <Login onSubmit={login} />;
 
-  const intro = view === 'dashboard' ? ['LISTA DO ÔNIBUS', 'Todas as vagas e pagamentos, em um só lugar.', 'Acompanhe quem confirmou presença, quem já pagou e quem ainda precisa ser cobrado.'] : view === 'people' ? ['PASSAGEIROS', 'Organize cada vaga.', 'Cadastre uma pessoa, informe o status e ajuste o valor individual quando precisar.'] : view === 'cash' ? ['CAIXA', 'Registre cada saída.', 'Veja o dinheiro disponível, registre gastos e compartilhe o link de acompanhamento.'] : ['LISTAS', 'Monte suas listas.', 'Defina o nome, as vagas disponíveis e o valor padrão por pessoa.'];
+  const intro = view === 'dashboard' ? ['LISTA DO ÔNIBUS', 'Todas as vagas e pagamentos, em um só lugar.', 'Acompanhe quem confirmou presença, quem já pagou e quem ainda precisa ser cobrado.'] : view === 'people' ? ['PASSAGEIROS', 'Organize cada vaga.', 'Cadastre uma pessoa, informe o status e ajuste o valor individual quando precisar.'] : view === 'boarding' ? ['EMBARQUES', 'Organize as respostas.', 'Compartilhe o formulário, veja todas as respostas e vincule cada nome à lista.'] : view === 'cash' ? ['CAIXA', 'Registre cada saída.', 'Veja o dinheiro disponível, registre gastos e compartilhe o link de acompanhamento.'] : ['LISTAS', 'Monte suas listas.', 'Defina o nome, as vagas disponíveis e o valor padrão por pessoa.'];
   return <main>
-    <header className="topbar"><div className="brand"><span className="mark">EJJ</span><div><strong>Lista do ônibus</strong><small>Passageiros e pagamentos</small></div></div><nav>{([['dashboard', 'Visão geral'], ['people', 'Pessoas'], ['cash', 'Caixa'], ['lists', 'Listas']] as [View, string][]).map(([id, name]) => <button key={id} onClick={() => setView(id)} className={view === id ? 'active' : ''}>{name}</button>)}</nav><button className="signout" onClick={logout}>Sair</button><button className="new" onClick={() => view === 'lists' ? openList() : view === 'cash' ? openOutflow() : openPerson()}>{view === 'lists' ? '+ Nova lista' : view === 'cash' ? '+ Registrar saída' : '+ Adicionar pessoa'}</button></header>
+    <header className="topbar"><div className="brand"><span className="mark">EJJ</span><div><strong>Lista do ônibus</strong><small>Passageiros e pagamentos</small></div></div><nav>{([['dashboard', 'Visão geral'], ['people', 'Pessoas'], ['boarding', 'Embarques'], ['cash', 'Caixa'], ['lists', 'Listas']] as [View, string][]).map(([id, name]) => <button key={id} onClick={() => setView(id)} className={view === id ? 'active' : ''}>{name}</button>)}</nav><button className="signout" onClick={logout}>Sair</button><button className="new" onClick={() => view === 'lists' ? openList() : view === 'cash' ? openOutflow() : view === 'boarding' ? openBoardingResponse() : openPerson()}>{view === 'lists' ? '+ Nova lista' : view === 'cash' ? '+ Registrar saída' : view === 'boarding' ? '+ Registrar resposta' : '+ Adicionar pessoa'}</button></header>
     <section className="shell">
       <div className="heading"><div><p className="eyebrow">{intro[0]}</p><h1>{intro[1]}</h1><p>{intro[2]}</p></div><div className="trip"><span>LISTA ATUAL</span>{lists.length ? <select value={selectedListId} onChange={event => chooseList(event.target.value)}>{lists.map(list => <option value={list.id} key={list.id}>{list.name}</option>)}</select> : <button onClick={() => openList()}>Criar lista</button>}{selectedList && <b>{selectedList.capacity} vagas · {money(selectedList.defaultValue)}</b>}</div></div>
       {error && <div className="notice error">{error}<button onClick={() => setError('')}>×</button></div>}{notice && <div className="notice">{notice}</div>}
-      {loading ? <div className="empty"><div className="loader" />Carregando a lista…</div> : view === 'dashboard' ? <Overview list={selectedList} people={selectedPeople} seatedCount={seatedPeople.length} vacancies={vacancies} cash={cash} heldOutside={heldOutside} busRemaining={busRemaining} awaiting={awaiting} openPerson={openPerson} setView={setView} /> : view === 'people' ? <section className="board"><div className="toolbar"><label>Buscar <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nome, status ou cobrança" /></label><label>Filtrar por situação <select value={personFilter} onChange={event => setPersonFilter(event.target.value as PersonFilter)}>{personFilters.map(filter => <option key={filter}>{filter}</option>)}</select></label><span>{seatedPeople.length} de {selectedList?.capacity || 0} vaga(s) · {selectedPeople.filter(person => person.status === 'Suplência').length} suplente(s)</span><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div><PeopleTable people={shownPeople} open={openPerson} remove={id => remove('passengers', id)} /></section> : view === 'cash' ? <CashBoard list={selectedList} cash={cash} cashOut={cashOut} outflows={selectedOutflows} open={openOutflow} remove={id => remove('outflows', id)} exportCurrent={exportCurrent} /> : <section className="board"><div className="toolbar"><span>{lists.length} lista(s)</span><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div><ListsTable lists={lists} people={people} current={selectedListId} choose={chooseList} open={openList} remove={id => remove('lists', id)} /></section>}
+      {loading ? <div className="empty"><div className="loader" />Carregando a lista…</div> : view === 'dashboard' ? <Overview list={selectedList} people={selectedPeople} seatedCount={seatedPeople.length} vacancies={vacancies} cash={cash} heldOutside={heldOutside} busRemaining={busRemaining} awaiting={awaiting} openPerson={openPerson} setView={setView} /> : view === 'people' ? <section className="board"><div className="toolbar"><label>Buscar <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Nome, status ou cobrança" /></label><label>Filtrar por situação <select value={personFilter} onChange={event => setPersonFilter(event.target.value as PersonFilter)}>{personFilters.map(filter => <option key={filter}>{filter}</option>)}</select></label><span>{seatedPeople.length} de {selectedList?.capacity || 0} vaga(s) · {selectedPeople.filter(person => person.status === 'Suplência').length} suplente(s)</span><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div><PeopleTable people={shownPeople} open={openPerson} remove={id => remove('passengers', id)} /></section> : view === 'boarding' ? <BoardingBoard list={selectedList} people={selectedPeople} responses={selectedBoardingResponses} open={openBoardingResponse} remove={id => remove('boarding-responses', id)} exportCurrent={exportCurrent} /> : view === 'cash' ? <CashBoard list={selectedList} cash={cash} cashOut={cashOut} outflows={selectedOutflows} open={openOutflow} remove={id => remove('outflows', id)} exportCurrent={exportCurrent} /> : <section className="board"><div className="toolbar"><span>{lists.length} lista(s)</span><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div><ListsTable lists={lists} people={people} current={selectedListId} choose={chooseList} open={openList} remove={id => remove('lists', id)} /></section>}
     </section>
-    {modal === 'list' && <Modal title={editId ? 'Editar lista' : 'Criar lista'} close={() => setModal(null)}><form onSubmit={saveList} className="form"><Input label="Nome da lista" required wide value={listForm.name} placeholder="Ex.: Ônibus EJJ Baixo Guandu" onChange={name => setListForm({ ...listForm, name })} /><Input label="Quantidade de vagas" required type="number" value={listForm.capacity} onChange={capacity => setListForm({ ...listForm, capacity })} /><Input label="Valor geral por pessoa" required type="number" value={listForm.defaultValue} onChange={defaultValue => setListForm({ ...listForm, defaultValue })} /><Input label="Custo total do ônibus" required type="number" value={listForm.busTotal} onChange={busTotal => setListForm({ ...listForm, busTotal })} /><p className="form-note wide">O valor real em caixa é atualizado automaticamente apenas quando o pagamento entra: <b>Pago</b> ou <b>Pago Davy</b>.</p><FormFooter close={() => setModal(null)} text="Salvar lista" /></form></Modal>}
+    {modal === 'list' && <Modal title={editId ? 'Editar lista' : 'Criar lista'} close={() => setModal(null)}><form onSubmit={saveList} className="form"><Input label="Nome da lista" required wide value={listForm.name} placeholder="Ex.: Ônibus EJJ Baixo Guandu" onChange={name => setListForm({ ...listForm, name })} /><Input label="Quantidade de vagas" required type="number" value={listForm.capacity} onChange={capacity => setListForm({ ...listForm, capacity })} /><Input label="Valor geral por pessoa" required type="number" value={listForm.defaultValue} onChange={defaultValue => setListForm({ ...listForm, defaultValue })} /><Input label="Custo total do ônibus" required type="number" value={listForm.busTotal} onChange={busTotal => setListForm({ ...listForm, busTotal })} /><label className="field wide">Pontos de embarque *<textarea value={listForm.boardingPoints} onChange={event => setListForm({ ...listForm, boardingPoints: event.target.value })} placeholder="Um ponto por linha" /></label><p className="form-note wide">Use um ponto por linha. Eles aparecerão no formulário de embarque.</p><FormFooter close={() => setModal(null)} text="Salvar lista" /></form></Modal>}
     {modal === 'person' && <Modal title={editId ? 'Editar pessoa' : 'Adicionar pessoa'} close={() => setModal(null)}><form onSubmit={savePerson} className="form"><Input label="Nome da pessoa" required wide value={personForm.name} placeholder="Nome completo" onChange={name => setPersonForm({ ...personForm, name })} /><Select label="Status" required value={personForm.status} onChange={status => setPersonForm({ ...personForm, status: status as PaymentStatus })} options={paymentStatuses} /><Input label="Valor total combinado" required type="number" value={personForm.amount} onChange={amount => setPersonForm({ ...personForm, amount })} />{personForm.status === 'Pago parcial' && <Input label="Valor já recebido" required type="number" value={personForm.receivedAmount} onChange={receivedAmount => setPersonForm({ ...personForm, receivedAmount })} />}<Input label="Desconto" type="number" value={personForm.discount} onChange={discount => setPersonForm({ ...personForm, discount })} /><label className="seat-option wide" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, border: '1px solid #d5dfe5', background: '#f8fafb', padding: 13, borderRadius: 3, cursor: 'pointer' }}><input type="checkbox" checked={!personForm.usesSeat} onChange={event => setPersonForm({ ...personForm, usesSeat: !event.target.checked })} style={{ width: 16, height: 16, marginTop: 2 }} /><span><b style={{ display: 'block', fontSize: 13 }}>Esta pessoa não ocupa vaga no ônibus</b><small style={{ display: 'block', marginTop: 4, color: '#687985', fontSize: 11 }}>Ela continua entrando na cobrança e no caixa, mas fica fora das 46 vagas.</small></span></label><Input label="Quem cobrar" wide value={personForm.chargeTo} placeholder="Ex.: nome do responsável" onChange={chargeTo => setPersonForm({ ...personForm, chargeTo })} /><label className="field wide">Observações<textarea value={personForm.notes} onChange={event => setPersonForm({ ...personForm, notes: event.target.value })} placeholder="Opcional" /></label>{personForm.status === 'Pago parcial' && <p className="form-note wide">A diferença entre o valor combinado e o valor recebido aparecerá automaticamente em <b>a cobrar</b>.</p>}<FormFooter close={() => setModal(null)} text="Salvar pessoa" /></form></Modal>}
+    {modal === 'boarding' && <Modal title={editId ? 'Editar resposta de embarque' : 'Registrar resposta de embarque'} close={() => setModal(null)}><form onSubmit={saveBoardingResponse} className="form"><Input label="Nome informado" required wide value={boardingForm.fullName} placeholder="Nome completo" onChange={fullName => setBoardingForm({ ...boardingForm, fullName })} /><label className="field wide">Local de embarque *<select required value={boardingForm.boardingPoint} onChange={event => setBoardingForm({ ...boardingForm, boardingPoint: event.target.value })}><option value="">Selecione o local</option>{(selectedList?.boardingPoints || '').split('\n').filter(Boolean).map(point => <option key={point} value={point}>{point}</option>)}</select></label><label className="field wide">Vincular à pessoa da lista<select value={boardingForm.passengerId} onChange={event => setBoardingForm({ ...boardingForm, passengerId: event.target.value })}><option value="">Não consta na lista / deixar sem vínculo</option>{selectedPeople.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select></label><p className="form-note wide">Quando o nome não tiver sido reconhecido automaticamente, selecione manualmente a pessoa correta aqui.</p><FormFooter close={() => setModal(null)} text="Salvar resposta" /></form></Modal>}
     {modal === 'outflow' && <Modal title={editId ? 'Editar saída de caixa' : 'Registrar saída de caixa'} close={() => setModal(null)}><form onSubmit={saveOutflow} className="form"><Input label="Para quem foi" required wide value={outflowForm.recipient} placeholder="Ex.: empresa, fornecedor ou responsável" onChange={recipient => setOutflowForm({ ...outflowForm, recipient })} /><Input label="Valor da saída" required type="number" value={outflowForm.amount} onChange={amount => setOutflowForm({ ...outflowForm, amount })} /><label className="field wide">Motivo / observação<textarea value={outflowForm.reason} onChange={event => setOutflowForm({ ...outflowForm, reason: event.target.value })} placeholder="Ex.: compra de água, sinal do ônibus, reembolso…" /></label><p className="form-note wide">A saída reduz o valor real em caixa e aparece na página de acompanhamento.</p><FormFooter close={() => setModal(null)} text="Salvar saída" /></form></Modal>}
   </main>;
 }
+
+function BoardingBoard({ list, people, responses, open, remove, exportCurrent }: { list?: PassengerList; people: Passenger[]; responses: BoardingResponse[]; open: (response?: BoardingResponse) => void; remove: (id: string) => void; exportCurrent: () => void }) {
+  if (!list) return <div className="empty"><h2>Crie a primeira lista</h2><p className="empty-copy">Você poderá compartilhar o formulário de embarque depois de criar uma lista.</p></div>;
+  const linked = responses.filter(response => response.passengerId).length;
+  const copyFormLink = async () => { const link = `${window.location.origin}/embarque/${list.id}`; try { await navigator.clipboard.writeText(link); alert('Link do formulário copiado.'); } catch { prompt('Copie o link do formulário:', link); } };
+  return <><section className="cash-summary"><div><p className="eyebrow">RESPOSTAS RECEBIDAS</p><strong>{responses.length}</strong><span>Formulários enviados</span></div><div><p className="eyebrow">VINCULADAS À LISTA</p><strong>{linked} / {responses.length}</strong><span>{responses.length - linked} ainda não consta(m) na lista</span></div><div className="cash-actions"><button className="secondary" onClick={copyFormLink}>Copiar link do formulário</button><button className="export" onClick={exportCurrent}>Exportar CSV ↓</button></div></section><section className="board"><div className="toolbar"><span>RESPOSTAS DE EMBARQUE</span><button className="new compact" onClick={() => open()}>+ Registrar resposta</button></div><BoardingResponsesTable people={people} responses={responses} open={open} remove={remove} /></section></>;
+}
+
+function BoardingResponsesTable({ people, responses, open, remove }: { people: Passenger[]; responses: BoardingResponse[]; open: (response: BoardingResponse) => void; remove: (id: string) => void }) { const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value)); return <table><thead><tr><th>Nome informado</th><th>Embarque</th><th>Vínculo com a lista</th><th>Enviado em</th><th /></tr></thead><tbody>{responses.length ? responses.map(response => <tr key={response.id}><td><b>{response.fullName}</b></td><td>{response.boardingPoint}</td><td>{response.passengerId ? <span className="tag green">{response.passengerName || people.find(person => person.id === response.passengerId)?.name || 'Vinculado'}</span> : <span className="tag amber">Não consta na lista</span>}</td><td>{date(response.createdAt)}</td><td className="actions"><button onClick={() => open(response)}>Editar / vincular</button><button className="danger" onClick={() => remove(response.id)}>Excluir</button></td></tr>) : <tr><td colSpan={5}><Empty text="Nenhuma resposta de embarque recebida ainda." /></td></tr>}</tbody></table>; }
 
 function CashBoard({ list, cash, cashOut, outflows, open, remove, exportCurrent }: { list?: PassengerList; cash: number; cashOut: number; outflows: CashOutflow[]; open: (outflow?: CashOutflow) => void; remove: (id: string) => void; exportCurrent: () => void }) {
   if (!list) return <div className="empty"><h2>Crie a primeira lista</h2><p className="empty-copy">Você poderá registrar saídas depois de criar uma lista.</p></div>;

@@ -8,6 +8,7 @@ export type Trip = { id: string; name: string; location: string; startDate: stri
 export type Quote = { id: string; tripId: string; companyId: string; contactName: string; companyName: string; busSize: number; busType: BusType; availability: Availability; reserveBus: ReserveBus; totalValue: number | null; depositPercent: number | null; paymentMethod: string | null; status: QuoteStatus; validUntil: string | null; proposalLink: string | null; notes: string | null; createdAt: string };
 
 export type PaymentStatus = 'Pago' | 'Pago parcial' | 'Pago pelo pastor' | 'Pago Davy' | 'Reservado a pagar' | 'Suplência';
-export type PassengerList = { id: string; name: string; capacity: number; defaultValue: number; busTotal: number; cashBalance: number; createdAt: string };
+export type PassengerList = { id: string; name: string; capacity: number; defaultValue: number; busTotal: number; cashBalance: number; boardingPoints: string; createdAt: string };
 export type Passenger = { id: string; listId: string; name: string; status: PaymentStatus; usesSeat: boolean; chargeTo: string; amount: number; receivedAmount: number; discount: number; notes: string; createdAt: string };
 export type CashOutflow = { id: string; listId: string; recipient: string; amount: number; reason: string; createdAt: string };
+export type BoardingResponse = { id: string; listId: string; fullName: string; boardingPoint: string; passengerId: string | null; passengerName: string | null; createdAt: string };

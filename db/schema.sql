@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS passenger_lists (
   default_value NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (default_value >= 0),
   bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0),
   cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0),
+  boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -85,10 +86,23 @@ CREATE TABLE IF NOT EXISTS cash_outflows (
 
 CREATE INDEX IF NOT EXISTS cash_outflows_list_id_idx ON cash_outflows(list_id);
 
+CREATE TABLE IF NOT EXISTS boarding_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  list_id UUID NOT NULL REFERENCES passenger_lists(id) ON DELETE RESTRICT,
+  full_name TEXT NOT NULL,
+  boarding_point TEXT NOT NULL,
+  passenger_id UUID REFERENCES passengers(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS boarding_responses_list_id_idx ON boarding_responses(list_id);
+
 -- Para bancos que já foram criados antes da opção de suplência.
 ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check;
 UPDATE passengers SET status = 'Pago pelo pastor' WHERE status = 'Pego pelo pastor';
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0);
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS uses_seat BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra';
 UPDATE passengers SET received_amount = amount WHERE received_amount = 0 AND status IN ('Pago', 'Pago pelo pastor', 'Pago Davy');
 ALTER TABLE passengers ADD CONSTRAINT passengers_status_check CHECK (status IN ('Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'));
