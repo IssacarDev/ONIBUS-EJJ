@@ -54,7 +54,10 @@ CREATE TABLE IF NOT EXISTS passenger_lists (
   cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0),
   boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra',
   travel_started_at TIMESTAMPTZ,
+  travel_moving_at TIMESTAMPTZ,
+  travel_ended_at TIMESTAMPTZ,
   active_boarding_point TEXT,
+  point_arrivals JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -110,7 +113,10 @@ ALTER TABLE passengers ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NO
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS uses_seat BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra';
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS travel_started_at TIMESTAMPTZ;
+ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS travel_moving_at TIMESTAMPTZ;
+ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS travel_ended_at TIMESTAMPTZ;
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS active_boarding_point TEXT;
+ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS point_arrivals JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente'));
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_at TIMESTAMPTZ;
 ALTER TABLE boarding_responses ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT '';

@@ -17,7 +17,7 @@ export async function GET() {
   try {
     await requireAuth(); await ensurePassengerTables();
     await seed();
-    const rows = await db()`SELECT id, name, capacity, default_value::float AS "defaultValue", bus_total::float AS "busTotal", cash_balance::float AS "cashBalance", boarding_points AS "boardingPoints", travel_started_at AS "travelStartedAt", active_boarding_point AS "activeBoardingPoint", created_at AS "createdAt" FROM passenger_lists ORDER BY created_at DESC`;
+    const rows = await db()`SELECT id, name, capacity, default_value::float AS "defaultValue", bus_total::float AS "busTotal", cash_balance::float AS "cashBalance", boarding_points AS "boardingPoints", travel_started_at AS "travelStartedAt", travel_moving_at AS "travelMovingAt", travel_ended_at AS "travelEndedAt", active_boarding_point AS "activeBoardingPoint", point_arrivals AS "pointArrivals", created_at AS "createdAt" FROM passenger_lists ORDER BY created_at DESC`;
     return NextResponse.json(rows);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível carregar as listas.' }, { status: 500 });
