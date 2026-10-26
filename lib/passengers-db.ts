@@ -11,6 +11,8 @@ export async function ensurePassengerTables() {
     bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0),
     cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0),
     boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra',
+    travel_started_at TIMESTAMPTZ,
+    active_boarding_point TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
@@ -25,6 +27,8 @@ export async function ensurePassengerTables() {
     received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0),
     discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0),
     notes TEXT NOT NULL DEFAULT '',
+    attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente')),
+    attendance_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
@@ -41,6 +45,7 @@ export async function ensurePassengerTables() {
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     list_id UUID NOT NULL REFERENCES passenger_lists(id) ON DELETE RESTRICT,
     full_name TEXT NOT NULL,
+    phone TEXT NOT NULL DEFAULT '',
     boarding_point TEXT NOT NULL,
     passenger_id UUID REFERENCES passengers(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -49,9 +54,14 @@ export async function ensurePassengerTables() {
   await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS bus_total NUMERIC(12,2) NOT NULL DEFAULT 5200 CHECK (bus_total >= 0)`;
   await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS cash_balance NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (cash_balance >= 0)`;
   await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra'`;
+  await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS travel_started_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS active_boarding_point TEXT`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0)`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0)`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS uses_seat BOOLEAN NOT NULL DEFAULT TRUE`;
+  await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente'))`;
+  await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE boarding_responses ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`;
   await sql`ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check`;
   await sql`UPDATE passengers SET status='Pago pelo pastor' WHERE status='Pego pelo pastor'`;
   await sql`UPDATE passengers SET received_amount=amount WHERE received_amount=0 AND status IN ('Pago', 'Pago pelo pastor', 'Pago Davy')`;

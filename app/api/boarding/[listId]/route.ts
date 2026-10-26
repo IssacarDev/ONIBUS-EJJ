@@ -25,15 +25,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { listId } = await params;
     const body = await request.json();
     const fullName = String(body.fullName || '').trim();
+    const phone = String(body.phone || '').trim();
     const boardingPoint = String(body.boardingPoint || '').trim();
     const sql = db();
     const lists = await sql`SELECT boarding_points AS "boardingPoints" FROM passenger_lists WHERE id=${listId}`;
     if (!lists.length) throw new Error('Formulário não encontrado.');
-    if (!fullName || !boardingPoint) throw new Error('Informe seu nome completo e o local de embarque.');
+    if (!fullName || !phone || !boardingPoint) throw new Error('Informe seu nome completo, telefone e local de embarque.');
+    if (phone.replace(/\D/g, '').length < 8) throw new Error('Informe um telefone válido.');
     if (!pointsFrom(lists[0].boardingPoints).includes(boardingPoint)) throw new Error('Selecione um local de embarque da lista.');
     const passengers = await sql`SELECT id, name FROM passengers WHERE list_id=${listId}`;
     const match = passengers.find(passenger => normalize(passenger.name) === normalize(fullName));
-    await sql`INSERT INTO boarding_responses (list_id, full_name, boarding_point, passenger_id) VALUES (${listId}, ${fullName}, ${boardingPoint}, ${match?.id || null})`;
+    await sql`INSERT INTO boarding_responses (list_id, full_name, phone, boarding_point, passenger_id) VALUES (${listId}, ${fullName}, ${phone}, ${boardingPoint}, ${match?.id || null})`;
     return NextResponse.json({ ok: true, matched: Boolean(match) }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível enviar sua resposta.' }, { status: 400 });

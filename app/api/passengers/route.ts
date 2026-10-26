@@ -26,7 +26,7 @@ function parse(body: Record<string, unknown>) {
 export async function GET() {
   try {
     await requireAuth(); await ensurePassengerTables();
-    const rows = await db()`SELECT id, list_id AS "listId", name, status, uses_seat AS "usesSeat", charge_to AS "chargeTo", amount::float AS amount, received_amount::float AS "receivedAmount", discount::float AS discount, notes, created_at AS "createdAt" FROM passengers ORDER BY created_at ASC`;
+    const rows = await db()`SELECT id, list_id AS "listId", name, status, uses_seat AS "usesSeat", charge_to AS "chargeTo", amount::float AS amount, received_amount::float AS "receivedAmount", discount::float AS discount, notes, attendance_status AS "attendanceStatus", attendance_at AS "attendanceAt", created_at AS "createdAt" FROM passengers ORDER BY created_at ASC`;
     return NextResponse.json(rows);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível carregar as pessoas.' }, { status: 500 });
