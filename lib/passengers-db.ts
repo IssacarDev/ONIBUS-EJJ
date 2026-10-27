@@ -34,6 +34,8 @@ export async function ensurePassengerTables() {
     notes TEXT NOT NULL DEFAULT '',
     attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente')),
     attendance_at TIMESTAMPTZ,
+    return_attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (return_attendance_status IN ('Pendente', 'Presente', 'Ausente')),
+    return_attendance_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
@@ -71,6 +73,8 @@ export async function ensurePassengerTables() {
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_only BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente'))`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (return_attendance_status IN ('Pendente', 'Presente', 'Ausente'))`;
+  await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_attendance_at TIMESTAMPTZ`;
   await sql`ALTER TABLE boarding_responses ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`;
   await sql`ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check`;
   await sql`UPDATE passengers SET status='Pago pelo pastor' WHERE status='Pego pelo pastor'`;

@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS passengers (
   notes TEXT NOT NULL DEFAULT '',
   attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente')),
   attendance_at TIMESTAMPTZ,
+  return_attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (return_attendance_status IN ('Pendente', 'Presente', 'Ausente')),
+  return_attendance_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -123,6 +125,8 @@ ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS active_boarding_point TEXT;
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS point_arrivals JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente'));
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_at TIMESTAMPTZ;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (return_attendance_status IN ('Pendente', 'Presente', 'Ausente'));
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_attendance_at TIMESTAMPTZ;
 ALTER TABLE boarding_responses ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT '';
 UPDATE passengers SET received_amount = amount WHERE received_amount = 0 AND status IN ('Pago', 'Pago pelo pastor', 'Pago Davy');
 ALTER TABLE passengers ADD CONSTRAINT passengers_status_check CHECK (status IN ('Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência'));

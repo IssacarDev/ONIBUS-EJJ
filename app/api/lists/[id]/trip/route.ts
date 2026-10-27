@@ -56,7 +56,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params; const sql = db();
     const list = await sql`SELECT id FROM passenger_lists WHERE id=${id}`;
     if (!list.length) throw new Error('Lista não encontrada.');
-    await sql`UPDATE passengers SET attendance_status='Pendente', attendance_at=NULL, updated_at=NOW() WHERE list_id=${id}`;
+    await sql`UPDATE passengers SET attendance_status='Pendente', attendance_at=NULL, return_attendance_status='Pendente', return_attendance_at=NULL, updated_at=NOW() WHERE list_id=${id}`;
     const updated = await sql`UPDATE passenger_lists SET travel_started_at=NULL, travel_moving_at=NULL, moving_seconds=0, travel_ended_at=NULL, active_boarding_point=NULL, point_arrivals='{}'::jsonb, updated_at=NOW() WHERE id=${id} RETURNING travel_started_at AS "travelStartedAt", travel_moving_at AS "travelMovingAt", moving_seconds AS "movingSeconds", travel_ended_at AS "travelEndedAt", active_boarding_point AS "activeBoardingPoint", point_arrivals AS "pointArrivals"`;
     return NextResponse.json(updated[0]);
   } catch (error) {
