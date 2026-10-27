@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS passengers (
   name TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'Reservado a pagar' CHECK (status IN ('Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência')),
   uses_seat BOOLEAN NOT NULL DEFAULT TRUE,
+  return_only BOOLEAN NOT NULL DEFAULT FALSE,
   charge_to TEXT NOT NULL DEFAULT '',
   amount NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (amount >= 0),
   received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0),
@@ -112,6 +113,7 @@ ALTER TABLE passengers DROP CONSTRAINT IF EXISTS passengers_status_check;
 UPDATE passengers SET status = 'Pago pelo pastor' WHERE status = 'Pego pelo pastor';
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0);
 ALTER TABLE passengers ADD COLUMN IF NOT EXISTS uses_seat BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_only BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS boarding_points TEXT NOT NULL DEFAULT '14:00 — Shopping Moxuara (Av. Mário Gurgel, 5353 - São Francisco, Cariacica)\n14:30 — UFES (Goiabeiras / Vitória)\n15:10 — Supermercado BH Laranjeiras (BR-101 / Serra)\n15:40 — Rodoviária da Serra';
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS travel_started_at TIMESTAMPTZ;
 ALTER TABLE passenger_lists ADD COLUMN IF NOT EXISTS travel_moving_at TIMESTAMPTZ;

@@ -26,6 +26,7 @@ export async function ensurePassengerTables() {
     name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'Reservado a pagar' CHECK (status IN ('Pago', 'Pago parcial', 'Pago pelo pastor', 'Pago Davy', 'Reservado a pagar', 'Suplência')),
     uses_seat BOOLEAN NOT NULL DEFAULT TRUE,
+    return_only BOOLEAN NOT NULL DEFAULT FALSE,
     charge_to TEXT NOT NULL DEFAULT '',
     amount NUMERIC(12,2) NOT NULL DEFAULT 125 CHECK (amount >= 0),
     received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0),
@@ -67,6 +68,7 @@ export async function ensurePassengerTables() {
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS discount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (discount >= 0)`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS received_amount NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (received_amount >= 0)`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS uses_seat BOOLEAN NOT NULL DEFAULT TRUE`;
+  await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS return_only BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_status TEXT NOT NULL DEFAULT 'Pendente' CHECK (attendance_status IN ('Pendente', 'Presente', 'Ausente'))`;
   await sql`ALTER TABLE passengers ADD COLUMN IF NOT EXISTS attendance_at TIMESTAMPTZ`;
   await sql`ALTER TABLE boarding_responses ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`;
