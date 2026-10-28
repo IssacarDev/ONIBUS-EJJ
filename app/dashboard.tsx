@@ -61,6 +61,7 @@ const blankPerson = {
   status: "Reservado a pagar" as PaymentStatus,
   usesSeat: true,
   returnOnly: false,
+  outboundOnly: false,
   chargeTo: "",
   amount: "125",
   receivedAmount: "0",
@@ -387,6 +388,7 @@ export default function Dashboard() {
             status: item.status,
             usesSeat: item.usesSeat !== false,
             returnOnly: item.returnOnly === true,
+            outboundOnly: item.outboundOnly === true,
             chargeTo: item.chargeTo || "",
             amount: String(item.amount),
             receivedAmount: String(item.receivedAmount || 0),
@@ -1267,6 +1269,9 @@ export default function Dashboard() {
                   setPersonForm({
                     ...personForm,
                     returnOnly: event.target.checked,
+                    outboundOnly: event.target.checked
+                      ? false
+                      : personForm.outboundOnly,
                   })
                 }
                 style={{ width: 16, height: 16, marginTop: 2 }}
@@ -1285,6 +1290,50 @@ export default function Dashboard() {
                 >
                   Ela mantém a vaga para a volta, mas não aparece na chamada nem
                   precisa preencher o formulário de ida.
+                </small>
+              </span>
+            </label>
+            <label
+              className="seat-option wide"
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                border: "1px solid #d5dfe5",
+                background: "#f8fafb",
+                padding: 13,
+                borderRadius: 3,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={personForm.outboundOnly}
+                onChange={(event) =>
+                  setPersonForm({
+                    ...personForm,
+                    outboundOnly: event.target.checked,
+                    returnOnly: event.target.checked
+                      ? false
+                      : personForm.returnOnly,
+                  })
+                }
+                style={{ width: 16, height: 16, marginTop: 2 }}
+              />
+              <span>
+                <b style={{ display: "block", fontSize: 13 }}>
+                  Esta pessoa só vai
+                </b>
+                <small
+                  style={{
+                    display: "block",
+                    marginTop: 4,
+                    color: "#687985",
+                    fontSize: 11,
+                  }}
+                >
+                  Ela participa da ida normalmente, mas não aparece na chamada
+                  da volta.
                 </small>
               </span>
             </label>
@@ -1506,7 +1555,10 @@ function BoardingBoard({
       person.usesSeat && !person.returnOnly && person.status !== "Suplência",
   );
   const returnRiders = people.filter(
-    (person) => person.usesSeat && person.status !== "Suplência",
+    (person) =>
+      person.usesSeat &&
+      !person.outboundOnly &&
+      person.status !== "Suplência",
   );
   const responseByPassenger = new Map<string, BoardingResponse>();
   responses.forEach((response) => {
@@ -2392,6 +2444,9 @@ function PeopleTable({
                 <b>{person.name}</b>
                 {person.returnOnly && (
                   <small>Somente volta · fora da chamada de ida</small>
+                )}
+                {person.outboundOnly && (
+                  <small>Somente ida · fora da chamada de volta</small>
                 )}
                 {!person.usesSeat && <small>Não ocupa vaga no ônibus</small>}
                 {person.notes && <small>{person.notes}</small>}

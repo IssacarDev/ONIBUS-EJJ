@@ -14,11 +14,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const status = String(body.status || 'Reservado a pagar');
     const usesSeat = body.usesSeat !== false;
     const returnOnly = body.returnOnly === true;
+    const outboundOnly = body.outboundOnly === true;
     const chargeTo = String(body.chargeTo || '').trim();
     const amount = asNumber(body.amount);
     const requestedReceived = asNumber(body.receivedAmount) ?? 0;
     const discount = asNumber(body.discount) ?? 0;
     const notes = String(body.notes || '').trim();
+    if (returnOnly && outboundOnly) throw new Error('Escolha apenas uma opção: só ida ou só volta.');
     if (!name || !statuses.includes(status) || amount === null || amount < 0 || discount < 0) throw new Error('Preencha nome, status, valor e desconto corretamente.');
     if (requestedReceived < 0 || requestedReceived > amount) throw new Error('O valor recebido deve estar entre zero e o valor combinado.');
     if (status === 'Pago parcial' && (requestedReceived <= 0 || requestedReceived >= amount)) throw new Error('No pagamento parcial, informe apenas o valor que já entrou.');
@@ -30,7 +32,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       const list = await sql`SELECT capacity, (SELECT COUNT(*)::int FROM passengers WHERE list_id=${existing[0].listId} AND uses_seat=TRUE AND status <> 'Suplência' AND id <> ${id}) AS people FROM passenger_lists WHERE id=${existing[0].listId}`;
       if (!list.length || list[0].people >= list[0].capacity) throw new Error('A lista já atingiu todas as vagas disponíveis. Marque que a pessoa não ocupa vaga, mantenha como suplência ou libere uma vaga.');
     }
-    await db()`UPDATE passengers SET name=${name}, status=${status}, uses_seat=${usesSeat}, return_only=${returnOnly}, charge_to=${chargeTo}, amount=${amount}, received_amount=${receivedAmount}, discount=${discount}, notes=${notes}, updated_at=NOW() WHERE id=${id}`;
+    await db()`UPDATE passengers SET name=${name}, status=${status}, uses_seat=${usesSeat}, return_only=${returnOnly}, outbound_only=${outboundOnly}, charge_to=${chargeTo}, amount=${amount}, received_amount=${receivedAmount}, discount=${discount}, notes=${notes}, updated_at=NOW() WHERE id=${id}`;
     return NextResponse.json({ ok: true });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Não foi possível salvar a pessoa.' }, { status: 400 });
